@@ -1,0 +1,57 @@
+quarkus:
+  http:
+    insecure-requests: enabled
+    ssl-port: 8443
+  log:
+    level: INFO
+kafka:
+  bootstrap:
+    servers: localhost:9092
+  security:
+    protocol: SSL
+  topic:
+    primary: SomeIncomingTopic
+    dlq: SomeIncomingDLQTopic
+mp:
+  messaging:
+    outgoing:
+      smallrye-test-secondary:
+        merge: true
+        connector: smallrye-kafka
+        topic: ${kafka.topic.primary}
+    incoming:
+      smallrye-test-dlq:
+        health-topic-verification-enabled: true
+        connector: smallrye-kafka
+        topic: ${kafka.topic.dlq}
+        failure-strategy: ignore
+        broadcast: true
+        auto:
+          offset:
+            reset: earliest
+        enable:
+          auto:
+            commit: false
+        group:
+          id: somegroupIdDlq
+      smallrye-test-primary:
+        health-topic-verification-enabled: true
+        connector: smallrye-kafka
+        topic: ${kafka.topic.primary}
+        failure-strategy: dead-letter-queue
+        dead-letter-queue:
+          topic: ${kafka.topic.dlq}
+        broadcast: true
+        auto:
+          offset:
+            reset: earliest
+        enable:
+          auto:
+            commit: false
+        group:
+          id: someGroupId
+"%dev":
+  security:
+    allow-anonymous: true
+    security:
+      protocol: PLAINTEXT
